@@ -13,7 +13,6 @@
  * I2C Commands available on each joint controller.
  *
  */
-
 #define I2C_COMMAND_NULL                        0
 #define I2C_COMMAND_JOINT_SET_SETPOINT          1
 #define I2C_COMMAND_JOINT_GET_SETPOINT          2
@@ -32,27 +31,69 @@
 
 // 7 bit I2C/TWI addresses are in the range of 0x08 to 0x77
 
-const int addressJoint1 = 0x08;
+const int joint_1_address = 0x08;
+const int joint_2_address = 0x09;
+const int joint_3_address = 0x0a;
 
 /*
  * Function prototypes
  */
-void positionCb(const std_msgs::Float32& position_msg);
+void joint1SetSetpointCb(const std_msgs::Float32& joint_1_setpoint_msg);
+void joint2SetSetpointCb(const std_msgs::Float32& joint_2_setpoint_msg);
+void joint3SetSetpointCb(const std_msgs::Float32& joint_3_setpoint_msg);
 
+double jointGet(int joint_address, int I2C_command);
+void jointSet(int joint_address, int I2C_command, double set_value);
 
 /*
  * Variable to store the current and new setpoint
  */
-float current_setpoint;
-float new_setpoint;
+double joint_1_current_setpoint;
+double joint_1_new_setpoint;
+
+double joint_1_position;
+
+double joint_2_current_setpoint;
+double joint_2_new_setpoint;
+
+double joint_2_position;
+
+double joint_3_current_setpoint;
+double joint_3_new_setpoint;
+
+double joint_3_position;
 
 
 /*
  * ROS node handle, encoder reading, subscriber and publisher
  */
-std_msgs::Float32 joint_position_msg;
-ros::Subscriber<std_msgs::Float32> setpoint_listener("position", &setpointCb);
-ros::Publisher pub_position("enc", &joint_position_msg);
+std_msgs::Float32 joint_1_position_msg;
+
+ros::Subscriber<std_msgs::Float32> joint_1_set_setpoint_listener(
+    "joint_1_set_setpoint",
+    &joint1SetSetpointCb);
+
+ros::Publisher joint_1_position_publisher("joint_1_position", &joint_1_position_msg);
+
+
+std_msgs::Float32 joint_2_position_msg;
+
+ros::Subscriber<std_msgs::Float32> joint_2_set_setpoint_listener(
+    "joint_2_set_setpoint",
+    &joint2SetSetpointCb);
+
+ros::Publisher joint_2_position_publisher("joint_2_position", &joint_2_position_msg);
+
+
+std_msgs::Float32 joint_3_position_msg;
+
+ros::Subscriber<std_msgs::Float32> joint_3_set_setpoint_listener(
+    "joint_3_set_setpoint",
+    &joint3SetSetpointCb);
+
+ros::Publisher joint_3_position_publisher("joint_3_position", &joint_3_position_msg);
+
+
 ros::NodeHandle nh;
 
 
@@ -61,40 +102,76 @@ void setup()
   Wire.begin();
 
   nh.initNode();
-  nh.subscribe(setpoint_listener);
-  nh.advertise(pub_position);
+  nh.subscribe(joint_1_set_setpoint_listener);
+  nh.advertise(joint_1_position_publisher);
+  nh.subscribe(joint_2_set_setpoint_listener);
+  nh.advertise(joint_2_position_publisher);
+  nh.subscribe(joint_3_set_setpoint_listener);
+  nh.advertise(joint_3_position_publisher);
 
-  current_setpoint  = 0.0; // Default setpoint
-  new_setpoint = 0.0;
+
+  joint_1_current_setpoint  = 0.0; // Default setpoint
+  joint_1_new_setpoint = 0.0;
+
+  joint_2_current_setpoint  = 0.0; // Default setpoint
+  joint_2_new_setpoint = 0.0;
+
+  joint_3_current_setpoint  = 0.0; // Default setpoint
+  joint_3_new_setpoint = 0.0;
 }
 
 
 void loop()
 {
-  double current_position;
-
-  // Read from the joint's position register.
-  Wire.beginTransmission(addressJoint1);
-  Wire.write(I2C_COMMAND_JOINT_GET_POSITION);
-  Wire.endTransmission();
-  
-  Wire.requestFrom(addressJoint1, sizeof current_position));
-
-  wireReadData(current_position);
+  joint_1_position = jointGet(joint_1_address, I2C_COMMAND_JOINT_GET_POSITION);
 
   // Report it to the publisher.
-  joint_position_msg.data = current_position;
-  pub_position.publish(&joint_position_msg);
+  joint_1_position_msg.data = joint_1_position;
+  joint_1_position_publisher.publish(&joint_1_position_msg);
 
   // Now, check if we have a new setpoint from the listener.
-  if (new_setpoint != current_setpoint)
+  if (joint_1_new_setpoint != joint_1_current_setpoint)
   {
-    Wire.beginTransmission(addressJoint1);
-    Wire.write(I2C_COMMAND_JOINT_SET_SETPOINT);
-    wireWriteData(new_setpoint);
-    Wire.endTransmission();
-    current_setpoint = new_setpoint;
+    jointSet(joint_1_address,
+	     I2C_COMMAND_JOINT_SET_SETPOINT,
+	     joint_1_new_setpoint);
+    joint_1_current_setpoint = joint_1_new_setpoint;
   }
+
+
+
+  joint_2_position = jointGet(joint_2_address, I2C_COMMAND_JOINT_GET_POSITION);
+
+  // Report it to the publisher.
+  joint_2_position_msg.data = joint_2_position;
+  joint_2_position_publisher.publish(&joint_2_position_msg);
+
+  // Now, check if we have a new setpoint from the listener.
+  if (joint_2_new_setpoint != joint_2_current_setpoint)
+  {
+    jointSet(joint_2_address,
+	     I2C_COMMAND_JOINT_SET_SETPOINT,
+	     joint_2_new_setpoint);
+    joint_2_current_setpoint = joint_2_new_setpoint;
+  }
+
+
+  joint_3_position = jointGet(joint_3_address, I2C_COMMAND_JOINT_GET_POSITION);
+
+  // Report it to the publisher.
+  joint_3_position_msg.data = joint_3_position;
+  joint_3_position_publisher.publish(&joint_3_position_msg);
+
+  // Now, check if we have a new setpoint from the listener.
+  if (joint_3_new_setpoint != joint_3_current_setpoint)
+  {
+    jointSet(joint_3_address,
+	     I2C_COMMAND_JOINT_SET_SETPOINT,
+	     joint_3_new_setpoint);
+    joint_3_current_setpoint = joint_3_new_setpoint;
+  }
+
+
 
   nh.spinOnce();
 
@@ -102,13 +179,55 @@ void loop()
 }
 
 
+double jointGet(int joint_address, int I2C_command)
+{
+  double get_value;
+  Wire.beginTransmission(joint_address);
+  Wire.write(I2C_command);
+  Wire.endTransmission();
+
+  // Now get the data
+  Wire.requestFrom(joint_address, sizeof get_value);
+
+  wireReadData(get_value);
+  return get_value;
+}
+
+void jointSet(int joint_address, int I2C_command, double set_value)
+{
+  Wire.beginTransmission(joint_address);
+  Wire.write(I2C_command);
+  wireWriteData(set_value);
+  Wire.endTransmission();
+}
+
 /*
  * Called when there is new msg on the setpoint topic. Updates the setpoint
  * value with the new setpoint msg value
  */
-void setpointCb(const std_msgs::Float32& setpoint_msg)
+void joint1SetSetpointCb(const std_msgs::Float32& joint_1_setpoint_msg)
 {
   // Copy payload from subscriber to our joint 
-  new_setpoint = setpoint_msg.data;
+  joint_1_new_setpoint = joint_1_setpoint_msg.data;
+}
+
+/*
+ * Called when there is new msg on the setpoint topic. Updates the setpoint
+ * value with the new setpoint msg value
+ */
+void joint2SetSetpointCb(const std_msgs::Float32& joint_2_setpoint_msg)
+{
+  // Copy payload from subscriber to our joint 
+  joint_2_new_setpoint = joint_2_setpoint_msg.data;
+}
+
+/*
+ * Called when there is new msg on the setpoint topic. Updates the setpoint
+ * value with the new setpoint msg value
+ */
+void joint3SetSetpointCb(const std_msgs::Float32& joint_3_setpoint_msg)
+{
+  // Copy payload from subscriber to our joint 
+  joint_3_new_setpoint = joint_3_setpoint_msg.data;
 }
 

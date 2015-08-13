@@ -19,7 +19,8 @@
 
 // 7 bit I2C/TWI addresses are in the range of 0x08 to 0x77
 
-const int addressJoint1 = 0x08;
+const int joint_address_1 = 0x08;
+const int joint_address_2 = 0x09;
 
 void setup()
 {
@@ -30,20 +31,20 @@ void setup()
 
 void loop()
 {
-  float currentSetpoint;
+  float current_position;
 
   // Request position from Joint1
-  Wire.beginTransmission(addressJoint1);
-  Wire.write(I2C_COMMAND_JOINT_GET_SETPOINT);
+  Wire.beginTransmission(joint_address_1);
+  Wire.write(I2C_COMMAND_JOINT_GET_POSITION);
   Wire.endTransmission();
 
   // Now get the data
-  Wire.requestFrom(addressJoint1, sizeof currentSetpoint);
+  Wire.requestFrom(joint_address_1, sizeof current_position);
 
-  wireReadData(currentSetpoint);
+  wireReadData(current_position);
 
-  Serial.print("Setpoint: ");
-  Serial.println(currentSetpoint);
+  Serial.print("Position: ");
+  Serial.println(current_position);
 
   // Send new position, if received over serial.
   if (Serial.available() > 0)
