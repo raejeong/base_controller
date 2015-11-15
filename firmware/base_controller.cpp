@@ -8,6 +8,7 @@
 #include <WireData.h>
 #include <ros.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
 
 /*
  * I2C Commands available on each joint controller.
@@ -28,6 +29,7 @@
 #define I2C_COMMAND_JOINT_HALT                  12
 #define I2C_COMMAND_JOINT_HOME                  13
 #define I2C_COMMAND_JOINT_MOTOR_OFF             14
+#define I2C_COMMAND_JOINT_MOTOR_ON              15
 
 // 7 bit I2C/TWI addresses are in the range of 0x08 to 0x77
 
@@ -41,27 +43,30 @@ const int joint_3_address = 0x0a;
 void joint1SetSetpointCb(const std_msgs::Float32& joint_1_setpoint_msg);
 void joint2SetSetpointCb(const std_msgs::Float32& joint_2_setpoint_msg);
 void joint3SetSetpointCb(const std_msgs::Float32& joint_3_setpoint_msg);
+void motor_status(const std_msgs::Bool& motor_status_msg);
+
 
 double jointGet(int joint_address, int I2C_command);
 void jointSet(int joint_address, int I2C_command, double set_value);
+void jointCommand(int joint_address, int I2C_command);
 
 /*
  * Variable to store the current and new setpoint
  */
 double joint_1_current_setpoint;
 double joint_1_new_setpoint;
-
 double joint_1_position;
+double joint_1_kP = 0.25;
 
 double joint_2_current_setpoint;
 double joint_2_new_setpoint;
-
 double joint_2_position;
+double joint_2_kP = 0.25;
 
 double joint_3_current_setpoint;
 double joint_3_new_setpoint;
-
 double joint_3_position;
+double joint_3_kP = 0.25;
 
 
 /*
@@ -93,6 +98,14 @@ ros::Subscriber<std_msgs::Float32> joint_3_set_setpoint_listener(
 
 ros::Publisher joint_3_position_publisher("joint_3_position", &joint_3_position_msg);
 
+boolean bool_old_motor_status = 0;
+boolean bool_motor_status = 1;
+std_msgs::Bool motor_status_msg;
+
+ros::Subscriber<std_msgs::Bool> motor_status_listener(
+    "motor_status",
+    &motor_status);
+
 
 ros::NodeHandle nh;
 
@@ -109,6 +122,7 @@ void setup()
   nh.subscribe(joint_3_set_setpoint_listener);
   nh.advertise(joint_3_position_publisher);
 
+  nh.subscribe(motor_status_listener);
 
   joint_1_current_setpoint  = 0.0; // Default setpoint
   joint_1_new_setpoint = 0.0;
@@ -118,6 +132,17 @@ void setup()
 
   joint_3_current_setpoint  = 0.0; // Default setpoint
   joint_3_new_setpoint = 0.0;
+
+  //jointSet(joint_1_address,
+	//     I2C_COMMAND_JOINT_SET_KP,
+	//     joint_1_kP);
+  //jointSet(joint_2_address,
+	//     I2C_COMMAND_JOINT_SET_KP,
+	//     joint_2_kP);
+  //jointSet(joint_3_address,
+	//     I2C_COMMAND_JOINT_SET_KP,
+	//     joint_3_kP);
+  pinMode(13,OUTPUT);
 }
 
 
@@ -137,8 +162,6 @@ void loop()
 	     joint_1_new_setpoint);
     joint_1_current_setpoint = joint_1_new_setpoint;
   }
-
-
 
   joint_2_position = jointGet(joint_2_address, I2C_COMMAND_JOINT_GET_POSITION);
 
@@ -171,8 +194,6 @@ void loop()
     joint_3_current_setpoint = joint_3_new_setpoint;
   }
 
-
-
   nh.spinOnce();
 
   delay(100); 
@@ -192,6 +213,7 @@ double jointGet(int joint_address, int I2C_command)
   wireReadData(get_value);
   return get_value;
 }
+
 
 void jointSet(int joint_address, int I2C_command, double set_value)
 {
@@ -231,3 +253,33 @@ void joint3SetSetpointCb(const std_msgs::Float32& joint_3_setpoint_msg)
   joint_3_new_setpoint = joint_3_setpoint_msg.data;
 }
 
+void motor_status(const std_msgs::Bool& motor_status_msg)
+{
+  bool_motor_status = motor_status_msg.data;
+  if(bool_motor_status)
+  {
+    digitalWrite(13,HIGH);
+    jointSet(joint_1_address,
+             I2C_COMMAND_JOINT_MOTOR_ON,
+             1);
+    jointSet(joint_2_address,
+             I2C_COMMAND_JOINT_MOTOR_ON,
+             1);
+    jointSet(joint_3_address,
+             I2C_COMMAND_JOINT_MOTOR_ON,
+             1);
+  }
+  else
+  {
+    digitalWrite(13,LOW);
+    jointSet(joint_1_address,
+             I2C_COMMAND_JOINT_MOTOR_OFF,
+             0);
+    jointSet(joint_2_address,
+             I2C_COMMAND_JOINT_MOTOR_OFF,
+             0);
+    jointSet(joint_3_address,
+             I2C_COMMAND_JOINT_MOTOR_OFF,
+             0);    
+   }
+}

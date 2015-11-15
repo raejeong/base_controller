@@ -52,7 +52,7 @@ void loop()
     float new_setpoint = Serial.parseFloat();
 
     // Send command and data.
-    Wire.beginTransmission(addressJoint1);
+    Wire.beginTransmission(joint_address_1);
     Wire.write(I2C_COMMAND_JOINT_SET_SETPOINT);
     wireWriteData(new_setpoint);
     Wire.endTransmission();
