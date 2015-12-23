@@ -135,12 +135,12 @@ void setup()
 
   //jointSet(joint_1_address,
 	//     I2C_COMMAND_JOINT_SET_KP,
-	//     joint_1_kP);
+	//     0.155);
   //jointSet(joint_2_address,
 	//     I2C_COMMAND_JOINT_SET_KP,
-	//     joint_2_kP);
+	//     0.29);
   //jointSet(joint_3_address,
-	//     I2C_COMMAND_JOINT_SET_KP,
+	//    I2C_COMMAND_JOINT_SET_KP,
 	//     joint_3_kP);
   pinMode(13,OUTPUT);
 }
